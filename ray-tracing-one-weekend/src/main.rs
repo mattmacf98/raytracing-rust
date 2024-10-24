@@ -1,3 +1,10 @@
+use std::io;
+
+use color::Color;
+
+mod vec3;
+mod color;
+
 fn main() {
     const IMAGE_WIDTH: i32 = 256;
     const IMAGE_HEIGHT: i32 = 256;
@@ -7,17 +14,15 @@ fn main() {
     for j in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rScanlines remaining: {}", j);
         for i in 0..IMAGE_WIDTH {
-            let r: f32 = (i as f32) / (IMAGE_WIDTH - 1) as f32;
-            let g: f32 = (j as f32) / (IMAGE_HEIGHT - 1) as f32;
-            let b: f32 = 0.25;
+            let r: f64 = (i as f64) / (IMAGE_WIDTH - 1) as f64;
+            let g: f64 = (j as f64) / (IMAGE_HEIGHT - 1) as f64;
+            let b: f64 = 0.25;
 
-            let int_r = (255.99 * r) as i32;
-            let int_g = (255.99 * g) as i32;
-            let int_b = (255.99 * b) as i32;
-
-            print!("{} {} {}\n", int_r, int_g, int_b);
+            let pixel_color = Color::new(r, g, b);
+            color::write_color(&mut io::stdout(), pixel_color);
         }
     }
 
     eprint!("\nDone.\n");
 }
+
