@@ -24,7 +24,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
+    const SAMPLES_PER_PIXEL: i32 = 500;
     const MAX_DEPTH: i32 = 50;
 
     let mut world = HittableList::new();
@@ -40,7 +40,12 @@ fn main() {
     world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), material_right_sphere, 0.5)));
 
     // Camera
-    let camera = Camera::new(Point3::new(-2.0, 2.0, 1.0), Point3::new(0.0, 0.0, -1.0), Vec3::new(0.0, 1.0, 0.0), 20.0, ASPECT_RATIO);
+    let eye = Point3::new(3.0, 3.0, 2.0);
+    let lookat = Point3::new(0.0, 0.0, -1.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 1.0;
+    let camera = Camera::new(eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 
     // Render
     print!("P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT);
