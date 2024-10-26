@@ -5,8 +5,9 @@ use color::Color;
 use common::{random_double, random_double_range};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
+use ray::Ray;
 use sphere::Sphere;
-use vec3::Point3;
+use vec3::{Point3, Vec3};
 
 mod vec3;
 mod color;
@@ -20,9 +21,9 @@ mod material;
 
 fn main() {
     const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_WIDTH: i32 = 600;
+    const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 250;
+    const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
     let world = random_scene();
@@ -42,7 +43,7 @@ fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
     let ground_material = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
-    world.add(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), ground_material, 1000.0)));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), ground_material, 1000.0)));
 
     for a in -11..11 {
         for b in -11..11 {
@@ -52,19 +53,22 @@ fn random_scene() -> HittableList {
                 let choose_mat = random_double();
                 if choose_mat < 0.8 {
                     //Diffuse
+                    let moving_ray = Ray::new(center , Vec3::new(0.0, random_double_range(0.0, 0.5), 0.0), 0.0);
                     let albedo = Color::random() * Color::random();
                     let sphere_material = Arc::new(Lambertian::new(albedo));
-                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                    world.add(Box::new(Sphere::new(moving_ray, sphere_material, 0.2)));
                 } else if choose_mat < 0.95 {
                     //Metal
+                    let stationary_ray = Ray::new(center , Vec3::new(0.0, 0.0, 0.0), 0.0);
                     let albedo = Color::random_range(0.5, 1.0);
                     let fuzz = random_double_range(0.0, 0.5);
                     let sphere_material = Arc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                    world.add(Box::new(Sphere::new(stationary_ray, sphere_material, 0.2)));
                 } else {
                     //Glass
+                    let stationary_ray = Ray::new(center , Vec3::new(0.0, 0.0, 0.0), 0.0);
                     let sphere_material = Arc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                    world.add(Box::new(Sphere::new(stationary_ray, sphere_material, 0.2)));
                 }
             }
         }
@@ -73,21 +77,21 @@ fn random_scene() -> HittableList {
 
     let material1 = Arc::new(Dielectric::new(1.5));
     world.add(Box::new(Sphere::new(
-        Point3::new(0.0, 1.0, 0.0),
+        Ray::new(Point3::new(0.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.0),
         material1,
         1.0,
     )));
  
     let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
-        Point3::new(-4.0, 1.0, 0.0),
+        Ray::new(Point3::new(-4.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.0),
         material2,
         1.0,
     )));
  
     let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
     world.add(Box::new(Sphere::new(
-        Point3::new(4.0, 1.0, 0.0),
+        Ray::new(Point3::new(4.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.0),
         material3,
         1.0,
     )));

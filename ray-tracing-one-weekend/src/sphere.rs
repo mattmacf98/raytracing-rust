@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::{hittable::{HitRecord, Hittable}, material::Material, vec3::{self, Point3}};
+use crate::{hittable::{HitRecord, Hittable}, material::Material, ray::Ray, vec3};
 
 pub struct Sphere {
-    center: Point3,
+    center: Ray,
     radius: f64,
     mat: Arc<dyn Material>
 }
 
 impl Sphere {
-    pub fn new(center: Point3, mat: Arc<dyn Material>, radius: f64) -> Sphere {
+    pub fn new(center: Ray, mat: Arc<dyn Material>, radius: f64) -> Sphere {
         Sphere {
             center,
             mat,
@@ -20,7 +20,8 @@ impl Sphere {
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let oc = ray.origin() - self.center;
+        let current_center = self.center.at(ray.time());
+        let oc = ray.origin() - current_center;
         let a = ray.direction().length_squared();
         let half_b = vec3::dot(oc, ray.direction());
         let c = oc.length_squared() - self.radius * self.radius;
@@ -48,7 +49,7 @@ impl Hittable for Sphere {
             front_face: Default::default(),
         };
 
-        let outward_norm = (rec.p - self.center) / self.radius;
+        let outward_norm = (rec.p - current_center) / self.radius;
         rec.set_face_normal(ray, outward_norm);
         Some(rec)
     }

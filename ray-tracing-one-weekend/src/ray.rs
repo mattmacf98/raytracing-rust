@@ -3,16 +3,22 @@ use crate::vec3::{Point3, Vec3};
 #[derive(Default)]
 pub struct Ray {
     origin: Point3,
-    dir: Vec3
+    dir: Vec3,
+    time: f64
 }
 
 impl Ray {
-    pub fn new(origin: Point3, dir: Vec3) -> Ray {
+    pub fn new(origin: Point3, dir: Vec3, time: f64) -> Ray {
         Ray {
             origin,
-            dir
+            dir,
+            time
         }
     }
+
+    pub fn time(&self) -> f64 {
+        self.time
+    } 
 
     pub fn origin(&self) -> Point3 {
         self.origin
