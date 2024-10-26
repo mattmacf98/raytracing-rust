@@ -36,11 +36,11 @@ fn main() {
 
     world.add(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), material_ground, 100.0)));
     world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), material_center_sphere, 0.5)));
-    world.add(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), material_left_sphere, -0.5)));
+    world.add(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), material_left_sphere, -0.45)));
     world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), material_right_sphere, 0.5)));
 
     // Camera
-    let camera = Camera::new();
+    let camera = Camera::new(Point3::new(-2.0, 2.0, 1.0), Point3::new(0.0, 0.0, -1.0), Vec3::new(0.0, 1.0, 0.0), 20.0, ASPECT_RATIO);
 
     // Render
     print!("P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT);
