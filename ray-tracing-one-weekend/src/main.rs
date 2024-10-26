@@ -23,6 +23,7 @@ fn main() {
     const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
     const SAMPLES_PER_PIXEL: i32 = 100;
+    const MAX_DEPTH: i32 = 50;
 
     let mut world = HittableList::new();
     world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
@@ -42,7 +43,7 @@ fn main() {
                 let v = (j as f64 + random_double()) / (IMAGE_HEIGHT - 1) as f64;
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(&r, &world);
+                pixel_color += ray_color(&r, &world, MAX_DEPTH);
             }
             color::write_color(&mut io::stdout(), pixel_color, SAMPLES_PER_PIXEL);
         }
@@ -52,10 +53,15 @@ fn main() {
 }
 
 
-fn ray_color(ray: &Ray, world: &dyn Hittable) -> Color {
+fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+    if depth <= 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
     let mut rec = HitRecord::new();
-    if world.hit(ray, 0.0, common::INFINITY, &mut rec) {
-        return 0.5 * (rec.normal + Color::new(1.0, 1.0, 1.0));
+    if world.hit(ray, 0.001, common::INFINITY, &mut rec) {
+        let direction = rec.normal + vec3::random_unit_vector();
+        return 0.5 * ray_color(&Ray::new(rec.p, direction), world, depth - 1);
     }
 
     let unit_direction = vec3::unit_vector(ray.direction());
