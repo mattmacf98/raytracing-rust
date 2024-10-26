@@ -1,13 +1,10 @@
-use std::{io, sync::Arc};
+use std::sync::Arc;
 
 use camera::Camera;
 use color::Color;
 use common::{random_double, random_double_range};
-use hittable::Hittable;
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
-use ray::Ray;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sphere::Sphere;
 use vec3::Point3;
 
@@ -36,51 +33,10 @@ fn main() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let camera = Camera::new(eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 
-    // Render
-    print!("P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT);
-    for j in (0..IMAGE_HEIGHT).rev() {
-        eprint!("\rScanlines remaining: {}", j);
-        let pixel_colors: Vec<_> = (0..IMAGE_WIDTH)
-            .into_par_iter()
-            .map(|i| {
-                let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                for _ in 0..SAMPLES_PER_PIXEL {
-                    let u = ((i as f64) + random_double()) / (IMAGE_WIDTH - 1) as f64;
-                    let v = ((j as f64) + random_double()) / (IMAGE_HEIGHT - 1) as f64;
-                    let r = camera.get_ray(u, v);
-                    pixel_color += ray_color(&r, &world, MAX_DEPTH);
-                }
-                pixel_color
-            })
-            .collect();
-        for pixel_color in pixel_colors {
-            color::write_color(&mut io::stdout(), pixel_color, SAMPLES_PER_PIXEL);
-        }
-    }
-
-    eprint!("\nDone.\n");
+    camera.render(&world);
 }
-
-
-fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
-    if depth <= 0 {
-        return Color::new(0.0, 0.0, 0.0);
-    }
-
-    if let Some(hit_rec) = world.hit(ray, 0.001, common::INFINITY) {
-        if let Some(scatter_rec) = hit_rec.mat.scatter(ray, &hit_rec) {
-            return  scatter_rec.attenuation * ray_color(&scatter_rec.scattered, world, depth - 1);
-        }
-        return Color::new(0.0, 0.0, 0.0);
-    }
-
-    let unit_direction = vec3::unit_vector(ray.direction());
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
-}
-
 
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
