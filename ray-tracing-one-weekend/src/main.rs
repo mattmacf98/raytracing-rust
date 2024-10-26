@@ -2,13 +2,13 @@ use std::{io, rc::Rc};
 
 use camera::Camera;
 use color::Color;
-use common::random_double;
+use common::{random_double, random_double_range};
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
-use material::{Dialetric, Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
 use sphere::Sphere;
-use vec3::{Point3, Vec3};
+use vec3::Point3;
 
 mod vec3;
 mod color;
@@ -21,30 +21,20 @@ mod camera;
 mod material;
 
 fn main() {
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: i32 = 400;
+    const ASPECT_RATIO: f64 = 3.0 / 2.0;
+    const IMAGE_WIDTH: i32 = 600;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 500;
+    const SAMPLES_PER_PIXEL: i32 = 50;
     const MAX_DEPTH: i32 = 50;
 
-    let mut world = HittableList::new();
-
-    let material_ground = Rc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-    let material_center_sphere = Rc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left_sphere = Rc::new(Dialetric::new(1.5));
-    let material_right_sphere = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.0));
-
-    world.add(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), material_ground, 100.0)));
-    world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), material_center_sphere, 0.5)));
-    world.add(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), material_left_sphere, -0.45)));
-    world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), material_right_sphere, 0.5)));
+    let mut world = random_scene();
 
     // Camera
-    let eye = Point3::new(3.0, 3.0, 2.0);
-    let lookat = Point3::new(0.0, 0.0, -1.0);
+    let eye = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = (eye - lookat).length();
-    let aperture = 1.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     let camera = Camera::new(eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 
     // Render
@@ -89,16 +79,60 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
 }
 
-fn hit_sphere(center: Point3, radius: f64, r: &Ray) -> f64 {
-    let oc = r.origin() - center;
-    let a = r.direction().length_squared();
-    let half_b = vec3::dot(oc, r.direction());
-    let c = oc.length_squared() - radius * radius;
-    let discriminant = half_b * half_b - a * c;
 
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (-half_b - f64::sqrt(discriminant)) / a
+fn random_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let ground_material = Rc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    world.add(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), ground_material, 1000.0)));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let center = Point3::new(a as f64 + 0.9 *random_double(), 0.2, b as f64 + 0.9 *random_double());
+
+            if (center - Point3::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                let choose_mat = random_double();
+                if choose_mat < 0.8 {
+                    //Diffuse
+                    let albedo = Color::random() * Color::random();
+                    let sphere_material = Rc::new(Lambertian::new(albedo));
+                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                } else if choose_mat < 0.95 {
+                    //Metal
+                    let albedo = Color::random_range(0.5, 1.0);
+                    let fuzz = random_double_range(0.0, 0.5);
+                    let sphere_material = Rc::new(Metal::new(albedo, fuzz));
+                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                } else {
+                    //Glass
+                    let sphere_material = Rc::new(Dielectric::new(1.5));
+                    world.add(Box::new(Sphere::new(center, sphere_material, 0.2)));
+                }
+            }
+        }
     }
+
+
+    let material1 = Rc::new(Dielectric::new(1.5));
+    world.add(Box::new(Sphere::new(
+        Point3::new(0.0, 1.0, 0.0),
+        material1,
+        1.0,
+    )));
+ 
+    let material2 = Rc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    world.add(Box::new(Sphere::new(
+        Point3::new(-4.0, 1.0, 0.0),
+        material2,
+        1.0,
+    )));
+ 
+    let material3 = Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Box::new(Sphere::new(
+        Point3::new(4.0, 1.0, 0.0),
+        material3,
+        1.0,
+    )));
+ 
+    world
 }

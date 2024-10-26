@@ -55,13 +55,13 @@ impl Material for Metal {
     }
 }
 
-pub struct Dialetric {
+pub struct Dielectric {
     ior: f64
 }
 
-impl Dialetric {
-    pub fn new(ior: f64) -> Dialetric {
-        Dialetric {
+impl Dielectric {
+    pub fn new(ior: f64) -> Dielectric {
+        Dielectric {
             ior
         }
     }
@@ -74,7 +74,7 @@ impl Dialetric {
     }
 }
 
-impl Material for Dialetric {
+impl Material for Dielectric {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord, attenuation: &mut Color, scattered: &mut Ray) -> bool {
         let refraction_ratio = if rec.front_face {1.0 / self.ior} else {self.ior};
         let unit_direction = vec3::unit_vector(r_in.direction());
