@@ -3,7 +3,7 @@ use std::{io, sync::Arc};
 use camera::Camera;
 use color::Color;
 use common::{random_double, random_double_range};
-use hittable::{HitRecord, Hittable};
+use hittable::Hittable;
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
@@ -69,13 +69,9 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
         return Color::new(0.0, 0.0, 0.0);
     }
 
-    let mut rec = HitRecord::new();
-    if world.hit(ray, 0.001, common::INFINITY, &mut rec) {
-        let mut attenuation = Color::default();
-        let mut scattered = Ray::default();
-
-        if rec.mat.as_ref().unwrap().scatter(ray, &rec, &mut attenuation, &mut scattered) {
-            return  attenuation * ray_color(&scattered, world, depth - 1);
+    if let Some(hit_rec) = world.hit(ray, 0.001, common::INFINITY) {
+        if let Some(scatter_rec) = hit_rec.mat.scatter(ray, &hit_rec) {
+            return  scatter_rec.attenuation * ray_color(&scatter_rec.scattered, world, depth - 1);
         }
         return Color::new(0.0, 0.0, 0.0);
     }
