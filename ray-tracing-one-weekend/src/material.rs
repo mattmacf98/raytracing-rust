@@ -1,6 +1,6 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, vec3::{self, Vec3}};
+use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, vec3};
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord, attenuation: &mut Color, scattered: &mut Ray) -> bool;
 }
 
