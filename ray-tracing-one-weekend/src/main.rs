@@ -1,10 +1,11 @@
-use std::io;
+use std::{io, rc::Rc};
 
 use camera::Camera;
 use color::Color;
 use common::random_double;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
+use material::{Lambertian, Metal};
 use ray::Ray;
 use sphere::Sphere;
 use vec3::{Point3, Vec3};
@@ -17,6 +18,7 @@ mod hittable_list;
 mod sphere;
 mod common;
 mod camera;
+mod material;
 
 fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -26,8 +28,16 @@ fn main() {
     const MAX_DEPTH: i32 = 50;
 
     let mut world = HittableList::new();
-    world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
-    world.add(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
+
+    let material_ground = Rc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+    let material_center_sphere = Rc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
+    let material_left_sphere = Rc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_right_sphere = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
+
+    world.add(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), material_ground, 100.0)));
+    world.add(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), material_center_sphere, 0.5)));
+    world.add(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), material_left_sphere, 0.5)));
+    world.add(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), material_right_sphere, 0.5)));
 
     // Camera
     let camera = Camera::new();
@@ -60,8 +70,13 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
 
     let mut rec = HitRecord::new();
     if world.hit(ray, 0.001, common::INFINITY, &mut rec) {
-        let direction = rec.normal + vec3::random_unit_vector();
-        return 0.5 * ray_color(&Ray::new(rec.p, direction), world, depth - 1);
+        let mut attenuation = Color::default();
+        let mut scattered = Ray::default();
+
+        if rec.mat.as_ref().unwrap().scatter(ray, &rec, &mut attenuation, &mut scattered) {
+            return  attenuation * ray_color(&scattered, world, depth - 1);
+        }
+        return Color::new(0.0, 0.0, 0.0);
     }
 
     let unit_direction = vec3::unit_vector(ray.direction());
