@@ -1,6 +1,7 @@
+use core::f64;
 use std::sync::Arc;
 
-use crate::{hittable::{HitRecord, Hittable}, material::Material, ray::Ray, vec3};
+use crate::{hittable::{HitRecord, Hittable}, material::Material, ray::Ray, vec2::UV, vec3::{self, Point3}};
 
 pub struct Sphere {
     center: Ray,
@@ -15,6 +16,16 @@ impl Sphere {
             mat,
             radius
         }
+    }
+
+    fn get_sphere_uv(p: Point3) -> UV {
+        let theta = f64::acos(-p.y());
+        let phi = f64::atan2(-p.z(), p.x()) + f64::consts::PI;
+
+        let u = phi / (2.0 * f64::consts::PI);
+        let v = theta / f64::consts::PI;
+
+        UV::new(u, v)
     }
 }
 
@@ -41,18 +52,21 @@ impl Hittable for Sphere {
             }
         }
 
+        let outward_norm = (ray.at(root) - current_center) / self.radius;
+        let uv: UV = Sphere::get_sphere_uv(outward_norm);
         let mut rec = HitRecord {
             t: root,
             p: ray.at(root),
             mat: self.mat.clone(),
             normal: Default::default(),
             front_face: Default::default(),
-            u: 0.0,
-            v: 0.0,
+            u: uv.x(),
+            v: uv.y(),
         };
 
-        let outward_norm = (rec.p - current_center) / self.radius;
+        
         rec.set_face_normal(ray, outward_norm);
+        
         Some(rec)
     }
 }

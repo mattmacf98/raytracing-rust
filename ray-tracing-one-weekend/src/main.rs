@@ -8,8 +8,10 @@ use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
 use sphere::Sphere;
 use texture::CheckerTexture;
+use texture_image::TextureImage;
 use vec3::{Point3, Vec3};
 
+mod vec2;
 mod vec3;
 mod color;
 mod ray;
@@ -20,6 +22,8 @@ mod common;
 mod camera;
 mod material;
 mod texture;
+mod texture_image;
+mod interval;
 
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
@@ -28,8 +32,25 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    checkered_spheres();
-    
+    earth();
+}
+
+fn earth() {
+    let mut world = HittableList::new();
+
+    let earth_texture = TextureImage::new("assets/earthmap.jpg");
+    let earth_mat = Lambertian::new(Box::new(earth_texture));
+
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 0.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(earth_mat), 2.0)));
+
+    let eye = Point3::new(0.0, 0.0, 12.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+
+    camera.render(&world);
 }
 
 fn checkered_spheres() {
