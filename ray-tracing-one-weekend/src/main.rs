@@ -5,6 +5,7 @@ use color::Color;
 use common::{random_double, random_double_range};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
+use noise_texture::NoiseTexture;
 use ray::Ray;
 use sphere::Sphere;
 use texture::CheckerTexture;
@@ -22,8 +23,10 @@ mod common;
 mod camera;
 mod material;
 mod texture;
+mod perlin;
 mod texture_image;
 mod interval;
+mod noise_texture;
 
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
@@ -32,7 +35,25 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    earth();
+    perlin_spheres();
+}
+
+fn perlin_spheres() {
+    let mut world = HittableList::new();
+    let perlin_texture_one = NoiseTexture::new(4.0);
+    let perlin_texture_two = NoiseTexture::new(4.0);
+
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_one))), 1000.0)));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 2.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_two))), 2.0)));
+
+    let eye = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+
+    camera.render(&world);
 }
 
 fn earth() {
