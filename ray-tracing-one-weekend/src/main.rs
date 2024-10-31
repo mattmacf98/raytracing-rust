@@ -7,6 +7,7 @@ use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
 use sphere::Sphere;
+use texture::CheckerTexture;
 use vec3::{Point3, Vec3};
 
 mod vec3;
@@ -18,31 +19,43 @@ mod sphere;
 mod common;
 mod camera;
 mod material;
+mod texture;
+
+const ASPECT_RATIO: f64 = 3.0 / 2.0;
+const IMAGE_WIDTH: i32 = 400;
+const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
+const SAMPLES_PER_PIXEL: i32 = 100;
+const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_WIDTH: i32 = 400;
-    const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
-    const MAX_DEPTH: i32 = 50;
+    checkered_spheres();
+    
+}
 
-    let world = random_scene();
+fn checkered_spheres() {
+    let mut world = HittableList::new();
+    let checker_texture_one = CheckerTexture::from_colors(0.32, Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
+    let checker_texture_two = CheckerTexture::from_colors(0.32, Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
 
-    // Camera
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(checker_texture_one))), 10.0)));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(checker_texture_two))), 10.0)));
+
     let eye = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = 10.0;
-    let aperture = 0.1;
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 
     camera.render(&world);
+
 }
 
-fn random_scene() -> HittableList {
+fn random_scene() {
     let mut world = HittableList::new();
 
-    let ground_material = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
+    let checker_texture = CheckerTexture::from_colors(0.32, Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
+    let ground_material = Arc::new(Lambertian::new(Box::new(checker_texture)));
     world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), ground_material, 1000.0)));
 
     for a in -11..11 {
@@ -55,7 +68,7 @@ fn random_scene() -> HittableList {
                     //Diffuse
                     let moving_ray = Ray::new(center , Vec3::new(0.0, random_double_range(0.0, 0.5), 0.0), 0.0);
                     let albedo = Color::random() * Color::random();
-                    let sphere_material = Arc::new(Lambertian::new(albedo));
+                    let sphere_material = Arc::new(Lambertian::from_color(albedo));
                     world.add(Box::new(Sphere::new(moving_ray, sphere_material, 0.2)));
                 } else if choose_mat < 0.95 {
                     //Metal
@@ -82,7 +95,7 @@ fn random_scene() -> HittableList {
         1.0,
     )));
  
-    let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
+    let material2 = Arc::new(Lambertian::from_color(Color::new(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
         Ray::new(Point3::new(-4.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.0),
         material2,
@@ -96,5 +109,12 @@ fn random_scene() -> HittableList {
         1.0,
     )));
  
-    world
+    let eye = Point3::new(13.0, 2.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+
+    camera.render(&world);
 }

@@ -47,6 +47,8 @@ impl Hittable for Sphere {
             mat: self.mat.clone(),
             normal: Default::default(),
             front_face: Default::default(),
+            u: 0.0,
+            v: 0.0,
         };
 
         let outward_norm = (rec.p - current_center) / self.radius;

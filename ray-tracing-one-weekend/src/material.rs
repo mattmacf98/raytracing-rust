@@ -1,4 +1,4 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, vec3};
+use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3};
 
 pub struct ScatterRecord {
     pub attenuation: Color,
@@ -10,13 +10,21 @@ pub trait Material: Send + Sync {
 }
 
 pub struct Lambertian {
-    albedo: Color
+    albedo: Box<dyn Texture>
 }
 
 impl Lambertian {
-    pub fn new(albedo: Color) -> Lambertian {
+    pub fn new(albedo: Box<dyn Texture>) -> Lambertian {
         Lambertian {
             albedo
+        }
+    }
+
+    pub fn from_color(albedo_color: Color) -> Lambertian {
+        let albedo = SolidColor::new(albedo_color);
+
+        Lambertian {
+            albedo: Box::new(albedo)
         }
     }
 }
@@ -30,7 +38,7 @@ impl Material for Lambertian {
         }
         
         Some(ScatterRecord {
-            attenuation: self.albedo,
+            attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
             scattered: Ray::new(rec.p, scatter_direction, r_in.time())
         })
     }
