@@ -101,9 +101,9 @@ impl Perlin {
                 accum += term_one * term_two * term_three * dot(c[i][j][k], weight);
             }
         }
-    }
+       }
 
-    accum
+        accum
     }
     
 }

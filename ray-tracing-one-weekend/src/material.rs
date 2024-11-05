@@ -45,12 +45,12 @@ impl Material for Lambertian {
 }
 
 pub struct Metal {
-    albedo: Color,
+    albedo: Box<dyn Texture>,
     fuzz: f64
 }
 
 impl Metal {
-    pub fn new(albedo: Color, f: f64) -> Metal {
+    pub fn new(albedo: Box<dyn Texture>, f: f64) -> Metal {
         Metal { 
             albedo,
             fuzz: if f < 1.0 {f} else {1.0}
@@ -65,7 +65,7 @@ impl Material for Metal {
         let scattered = Ray::new(rec.p, reflected + self.fuzz * vec3::random_in_unit_sphere(), r_in.time());
         if  vec3::dot(scattered.direction(), rec.normal) > 0.0 {
             Some(ScatterRecord {
-                attenuation: self.albedo,
+                attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
                 scattered
             })
         } else {

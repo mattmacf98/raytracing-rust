@@ -8,7 +8,7 @@ use material::{Dielectric, Lambertian, Metal};
 use noise_texture::NoiseTexture;
 use ray::Ray;
 use sphere::Sphere;
-use texture::CheckerTexture;
+use texture::{CheckerTexture, SolidColor};
 use texture_image::TextureImage;
 use vec3::{Point3, Vec3};
 
@@ -79,7 +79,7 @@ fn checkered_spheres() {
     let checker_texture_one = CheckerTexture::from_colors(0.32, Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
     let checker_texture_two = CheckerTexture::from_colors(0.32, Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
 
-    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(checker_texture_one))), 10.0)));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Metal::new(Box::new(checker_texture_one), 0.1)), 10.0)));
     world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(checker_texture_two))), 10.0)));
 
     let eye = Point3::new(13.0, 2.0, 3.0);
@@ -117,7 +117,7 @@ fn random_scene() {
                     let stationary_ray = Ray::new(center , Vec3::new(0.0, 0.0, 0.0), 0.0);
                     let albedo = Color::random_range(0.5, 1.0);
                     let fuzz = random_double_range(0.0, 0.5);
-                    let sphere_material = Arc::new(Metal::new(albedo, fuzz));
+                    let sphere_material = Arc::new(Metal::new(Box::new(SolidColor::from_rgb(albedo.x(), albedo.y(), albedo.z())), fuzz));
                     world.add(Box::new(Sphere::new(stationary_ray, sphere_material, 0.2)));
                 } else {
                     //Glass
@@ -144,7 +144,7 @@ fn random_scene() {
         1.0,
     )));
  
-    let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    let material3 = Arc::new(Metal::new(Box::new(SolidColor::from_rgb(0.7, 0.6, 0.5)), 0.0));
     world.add(Box::new(Sphere::new(
         Ray::new(Point3::new(4.0, 1.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.0),
         material3,
