@@ -4,7 +4,7 @@ use camera::Camera;
 use color::Color;
 use common::{random_double, random_double_range};
 use hittable_list::HittableList;
-use material::{Dielectric, Lambertian, Metal};
+use material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use noise_texture::NoiseTexture;
 use quad::Quad;
 use ray::Ray;
@@ -37,7 +37,60 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    quads();
+    cornell_box();
+}
+
+fn cornell_box() {
+    let mut world = HittableList::new();
+
+    let red = Lambertian::from_color(Color::new(0.65, 0.05, 0.05));
+    let white_one = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
+    let white_two = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
+    let white_three = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
+    let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
+    let light = DiffuseLight::from_color(Color::new(15.0, 15.0, 15.0));
+
+
+    world.add(Box::new(Quad::new(Point3::new(555.0,0.0,0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(green))));
+    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(red))));
+    world.add(Box::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(light))));
+    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(white_one))));
+    world.add(Box::new(Quad::new(Point3::new(555.0, 555.0, 555.0), Vec3::new(-555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -555.0), Arc::new(white_two))));
+    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 555.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), Arc::new(white_three))));
+
+    let eye = Point3::new(278.0, 278.0, -800.0);
+    let lookat = Point3::new(278.0, 278.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
+    let camera = Camera::new(600, 600, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 40.0, 1.0, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
+
+    camera.render(&world);
+}
+
+fn simple_light() {
+    let mut world = HittableList::new();
+
+    let perlin_texture_one = NoiseTexture::new(4.0);
+    let perlin_texture_two = NoiseTexture::new(4.0);
+
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_one))), 1000.0)));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 2.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_two))), 2.0)));
+
+    let diff_light_one = DiffuseLight::from_color(Color::new(4.0, 4.0, 4.0));
+    let diff_light_two = DiffuseLight::from_color(Color::new(4.0, 4.0, 4.0));
+
+    world.add(Box::new(Quad::new(Point3::new(3.0, 1.0, -2.0), Vec3::new(2.0, 0.0, 0.0), Vec3::new(0.0, 2.0, 0.0), Arc::new(diff_light_one))));
+    world.add(Box::new(Sphere::new(Ray::new(Point3::new(0.0, 7.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(diff_light_two), 2.0)));
+
+    let eye = Point3::new(26.0, 3.0, 6.0);
+    let lookat = Point3::new(0.0, 2.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
+
+    camera.render(&world);
 }
 
 fn quads() {
@@ -60,7 +113,7 @@ fn quads() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = (eye - lookat).length();
     let aperture = 0.0;
-    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 80.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 80.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
     camera.render(&world);
 }
@@ -78,7 +131,7 @@ fn perlin_spheres() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = (eye - lookat).length();
     let aperture = 0.0;
-    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
     camera.render(&world);
 }
@@ -96,7 +149,7 @@ fn earth() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = (eye - lookat).length();
     let aperture = 0.0;
-    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
     camera.render(&world);
 }
@@ -114,7 +167,7 @@ fn checkered_spheres() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = (eye - lookat).length();
     let aperture = 0.0;
-    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
     camera.render(&world);
 
@@ -183,7 +236,7 @@ fn random_scene() {
     let up = Point3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
     camera.render(&world);
 }

@@ -15,12 +15,13 @@ pub struct Camera {
     vertical: Vec3,
     u: Vec3,
     v: Vec3,
-    lens_radius: f64
+    lens_radius: f64,
+    background: Color
 }
 
 impl Camera {
     pub fn new(image_width: i32, image_height: i32, samples_per_pixel: i32, max_depth: i32,
-         eye: Point3, lookat: Point3, up: Vec3, vfov: f64, aspect_ratio: f64, aperature: f64, focus_dist: f64) -> Camera {
+         eye: Point3, lookat: Point3, up: Vec3, vfov: f64, aspect_ratio: f64, aperature: f64, focus_dist: f64, background: Color) -> Camera {
         let theta = degrees_to_radians(vfov);
         let h = f64::tan(theta / 2.0);
         let viewport_height = 2.0 * h;
@@ -48,7 +49,8 @@ impl Camera {
             vertical,
             u,
             v,
-            lens_radius
+            lens_radius,
+            background
         }
     }
 
@@ -64,7 +66,7 @@ impl Camera {
                         let u = ((i as f64) + random_double()) / (self.image_width - 1) as f64;
                         let v = ((j as f64) + random_double()) / (self.image_height - 1) as f64;
                         let r = self.get_ray(u, v);
-                        pixel_color += Self::ray_color(&r, world, self.max_depth);
+                        pixel_color += self.ray_color(&r, world, self.max_depth);
                     }
                     pixel_color
                 })
@@ -77,21 +79,24 @@ impl Camera {
         eprint!("\nDone.\n");
     }
 
-    fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+    fn ray_color(&self, ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
         if depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
     
         if let Some(hit_rec) = world.hit(ray, 0.001, common::INFINITY) {
-            if let Some(scatter_rec) = hit_rec.mat.scatter(ray, &hit_rec) {
-                return  scatter_rec.attenuation * Self::ray_color(&scatter_rec.scattered, world, depth - 1);
-            }
-            return Color::new(0.0, 0.0, 0.0);
+            let color_from_emission = hit_rec.mat.emitted(hit_rec.u, hit_rec.v, &hit_rec.p);
+
+            return match hit_rec.mat.scatter(ray, &hit_rec) {
+                Some(scatter_rec) => {
+                    let color_from_scatter = scatter_rec.attenuation * self.ray_color(&scatter_rec.scattered, world, depth - 1);
+                    return  color_from_emission + color_from_scatter;
+                },
+                None => color_from_emission
+            };
+        } else {
+            return self.background;
         }
-    
-        let unit_direction = vec3::unit_vector(ray.direction());
-        let t = 0.5 * (unit_direction.y() + 1.0);
-        (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
     }
 
     fn get_ray(&self, s: f64, t: f64) -> Ray {

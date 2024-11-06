@@ -1,4 +1,4 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3};
+use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, Point3}};
 
 pub struct ScatterRecord {
     pub attenuation: Color,
@@ -7,6 +7,9 @@ pub struct ScatterRecord {
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord>;
+    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
 }
 
 pub struct Lambertian {
@@ -111,5 +114,35 @@ impl Material for Dielectric {
             attenuation: Color::new(1.0, 1.0, 1.0),
             scattered: Ray::new(rec.p, direction, r_in.time())
         })
+    }
+}
+
+pub struct DiffuseLight {
+    albedo: Box<dyn Texture>
+}
+
+impl DiffuseLight {
+    pub fn new(albedo: Box<dyn Texture>) -> Self {
+        DiffuseLight {
+            albedo
+        }
+    }
+
+    pub fn from_color(albedo_color: Color) -> Self {
+        let albedo = SolidColor::new(albedo_color);
+
+        DiffuseLight {
+            albedo: Box::new(albedo)
+        }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<ScatterRecord> {
+        None
+    }
+
+    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
+        self.albedo.get_color(u, v, p)
     }
 }
