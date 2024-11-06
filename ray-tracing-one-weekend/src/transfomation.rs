@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use crate::{common::degrees_to_radians, hittable::Hittable, ray::Ray, vec3::{Point3, Vec3}};
 
 pub struct Translate {
-    object: Box<dyn Hittable>,
+    object: Arc<dyn Hittable>,
     offset: Vec3
 }
 
 impl Translate {
-    pub fn new(object: Box<dyn Hittable>, offset: Vec3) -> Self {
+    pub fn new(object: Arc<dyn Hittable>, offset: Vec3) -> Self {
         Translate {
             object,
             offset
@@ -30,13 +32,13 @@ impl Hittable for Translate {
 
 
 pub struct RotateY {
-    object: Box<dyn Hittable>,
+    object: Arc<dyn Hittable>,
     sin_theta: f64,
     cos_theta: f64
 }
 
 impl RotateY {
-    pub fn new(object: Box<dyn Hittable>, angle: f64) -> Self {
+    pub fn new(object: Arc<dyn Hittable>, angle: f64) -> Self {
         let radians = degrees_to_radians(angle);
         let sin_theta = f64::sin(radians);
         let cos_theta = f64::cos(radians);

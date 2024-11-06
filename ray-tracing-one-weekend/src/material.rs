@@ -1,4 +1,4 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, Point3}};
+use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, random_unit_vector, Point3}};
 
 pub struct ScatterRecord {
     pub attenuation: Color,
@@ -144,5 +144,37 @@ impl Material for DiffuseLight {
 
     fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
         self.albedo.get_color(u, v, p)
+    }
+}
+
+pub struct Isotropic {
+    albedo: Box<dyn Texture>
+}
+
+impl Isotropic {
+    pub fn new(albedo: Box<dyn Texture>) -> Self {
+        Isotropic {
+            albedo
+        }
+    }
+
+    pub fn from_color(albedo_color: Color) -> Self {
+        let albedo = SolidColor::new(albedo_color);
+
+        Isotropic {
+            albedo: Box::new(albedo)
+        }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
+        let scattered = Ray::new(rec.p, random_unit_vector(), r_in.time());
+        let attenuation = self.albedo.get_color(rec.u, rec.v, &rec.p);
+
+        Some(ScatterRecord {
+            attenuation,
+            scattered
+        })
     }
 }

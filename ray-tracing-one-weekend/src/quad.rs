@@ -37,12 +37,12 @@ impl Quad {
         let dy = Vec3::new(0.0, max.y() - min.y(), 0.0);
         let dz = Vec3::new(0.0, 0.0, max.z() - min.z());
 
-        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), max.z()), dx, dy, mat.clone()))); // front
-        sides.add(Box::new(Quad::new(Point3::new(max.x(), min.y(), max.z()), -dz, dy, mat.clone()))); // right
-        sides.add(Box::new(Quad::new(Point3::new(max.x(), min.y(), min.z()), -dx, dy, mat.clone()))); // back
-        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dz, dy, mat.clone()))); // left
-        sides.add(Box::new(Quad::new(Point3::new(min.x(), max.y(), max.z()), dx, -dz, mat.clone()))); // top
-        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dx, dz, mat.clone()))); // bottom
+        sides.add(Arc::new(Quad::new(Point3::new(min.x(), min.y(), max.z()), dx, dy, mat.clone()))); // front
+        sides.add(Arc::new(Quad::new(Point3::new(max.x(), min.y(), max.z()), -dz, dy, mat.clone()))); // right
+        sides.add(Arc::new(Quad::new(Point3::new(max.x(), min.y(), min.z()), -dx, dy, mat.clone()))); // back
+        sides.add(Arc::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dz, dy, mat.clone()))); // left
+        sides.add(Arc::new(Quad::new(Point3::new(min.x(), max.y(), max.z()), dx, -dz, mat.clone()))); // top
+        sides.add(Arc::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dx, dz, mat.clone()))); // bottom
         sides
     }
 }
