@@ -6,6 +6,7 @@ use common::{random_double, random_double_range};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
 use noise_texture::NoiseTexture;
+use quad::Quad;
 use ray::Ray;
 use sphere::Sphere;
 use texture::{CheckerTexture, SolidColor};
@@ -19,6 +20,7 @@ mod ray;
 mod hittable;
 mod hittable_list;
 mod sphere;
+mod quad;
 mod common;
 mod camera;
 mod material;
@@ -35,7 +37,32 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    perlin_spheres();
+    quads();
+}
+
+fn quads() {
+    let mut world = HittableList::new();
+
+    let left_red = Lambertian::from_color(Color::new(1.0, 0.2, 0.2));
+    let back_green = Lambertian::from_color(Color::new(0.2, 1.0, 0.2));
+    let right_blue = Lambertian::from_color(Color::new(0.2, 0.2, 1.0));
+    let upper_orange = Lambertian::from_color(Color::new(1.0, 0.5, 0.0));
+    let lower_teal = Lambertian::from_color(Color::new(0.2, 0.8, 0.8));
+
+    world.add(Box::new(Quad::new(Point3::new(-3.0, -2.0, 5.0), Vec3::new(0.0, 0.0, -4.0), Vec3::new(0.0, 4.0, 0.0), Arc::new(left_red))));
+    world.add(Box::new(Quad::new(Point3::new(-2.0, -2.0, 0.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 4.0, 0.0), Arc::new(back_green))));
+    world.add(Box::new(Quad::new(Point3::new(3.0, -2.0, 1.0), Vec3::new(0.0, 0.0, 4.0), Vec3::new(0.0, 4.0, 0.0), Arc::new(right_blue))));
+    world.add(Box::new(Quad::new(Point3::new(-2.0, 3.0, 1.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 4.0), Arc::new(upper_orange))));
+    world.add(Box::new(Quad::new(Point3::new(-2.0, -3.0, 5.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -4.0), Arc::new(lower_teal))));
+
+    let eye = Point3::new(0.0, 0.0, 9.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+    let up = Point3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (eye - lookat).length();
+    let aperture = 0.0;
+    let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 80.0, ASPECT_RATIO, aperture, dist_to_focus);
+
+    camera.render(&world);
 }
 
 fn perlin_spheres() {
