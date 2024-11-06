@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{hittable::{self, HitRecord, Hittable}, material::Material, vec2::Vec2, vec3::{self, cross, dot, unit_vector, Point3, Vec3}};
+use crate::{hittable::{self, HitRecord, Hittable}, hittable_list::HittableList, material::Material, vec2::Vec2, vec3::{self, cross, dot, unit_vector, Point3, Vec3}};
 
 pub struct Quad {
     q: Point3,
@@ -28,6 +28,22 @@ impl Quad {
             d,
             normal
         }
+    }
+
+    pub fn get_box(min: Point3, max: Point3, mat: Arc<dyn Material>) -> HittableList {
+        let mut sides = HittableList::new();
+
+        let dx = Vec3::new(max.x() - min.x(), 0.0, 0.0);
+        let dy = Vec3::new(0.0, max.y() - min.y(), 0.0);
+        let dz = Vec3::new(0.0, 0.0, max.z() - min.z());
+
+        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), max.z()), dx, dy, mat.clone()))); // front
+        sides.add(Box::new(Quad::new(Point3::new(max.x(), min.y(), max.z()), -dz, dy, mat.clone()))); // right
+        sides.add(Box::new(Quad::new(Point3::new(max.x(), min.y(), min.z()), -dx, dy, mat.clone()))); // back
+        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dz, dy, mat.clone()))); // left
+        sides.add(Box::new(Quad::new(Point3::new(min.x(), max.y(), max.z()), dx, -dz, mat.clone()))); // top
+        sides.add(Box::new(Quad::new(Point3::new(min.x(), min.y(), min.z()), dx, dz, mat.clone()))); // bottom
+        sides
     }
 }
 

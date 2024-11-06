@@ -11,6 +11,7 @@ use ray::Ray;
 use sphere::Sphere;
 use texture::{CheckerTexture, SolidColor};
 use texture_image::TextureImage;
+use transfomation::{RotateY, Translate};
 use vec3::{Point3, Vec3};
 
 mod vec2;
@@ -29,6 +30,7 @@ mod perlin;
 mod texture_image;
 mod interval;
 mod noise_texture;
+mod transfomation;
 
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
@@ -44,9 +46,7 @@ fn cornell_box() {
     let mut world = HittableList::new();
 
     let red = Lambertian::from_color(Color::new(0.65, 0.05, 0.05));
-    let white_one = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
-    let white_two = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
-    let white_three = Lambertian::from_color(Color::new(0.73, 0.73, 0.73));
+    let white = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
     let light = DiffuseLight::from_color(Color::new(15.0, 15.0, 15.0));
 
@@ -54,9 +54,19 @@ fn cornell_box() {
     world.add(Box::new(Quad::new(Point3::new(555.0,0.0,0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(green))));
     world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(red))));
     world.add(Box::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(light))));
-    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(white_one))));
-    world.add(Box::new(Quad::new(Point3::new(555.0, 555.0, 555.0), Vec3::new(-555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -555.0), Arc::new(white_two))));
-    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 555.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), Arc::new(white_three))));
+    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 555.0), white.clone())));
+    world.add(Box::new(Quad::new(Point3::new(555.0, 555.0, 555.0), Vec3::new(-555.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -555.0), white.clone())));
+    world.add(Box::new(Quad::new(Point3::new(0.0, 0.0, 555.0), Vec3::new(555.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), white.clone())));
+
+    let box1 = Box::new(Quad::get_box(Point3::new(0.0, 0.0, 0.0), Point3::new(165.0, 330.0, 165.0), white.clone()));
+    let box1 = Box::new(RotateY::new(box1, 15.0));
+    let box1 = Box::new(Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)));
+    world.add(box1);
+
+    let box2 = Box::new(Quad::get_box(Point3::new(0.0, 0.0, 0.0), Point3::new(165.0, 165.0, 165.0), white.clone()));
+    let box2 = Box::new(RotateY::new(box2, -18.0));
+    let box2 = Box::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
+    world.add(box2);
 
     let eye = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
