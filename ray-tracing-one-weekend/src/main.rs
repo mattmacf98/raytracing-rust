@@ -41,7 +41,7 @@ const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
-    cornell_smoke();
+    cornell_box();
 }
 
 fn cornell_smoke() {

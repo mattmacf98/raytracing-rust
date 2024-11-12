@@ -2,7 +2,7 @@ use std::io;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double}, hittable::Hittable, hittable_list::HittableList, ray::Ray, vec3::{self, Point3, Vec3}};
+use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double}, hittable::Hittable, hittable_list::HittableList, ray::Ray, vec2::UV, vec3::{self, Point3, Vec3}};
 
 pub struct Camera {
     image_width: i32,
@@ -16,7 +16,8 @@ pub struct Camera {
     u: Vec3,
     v: Vec3,
     lens_radius: f64,
-    background: Color
+    background: Color,
+    sqrt_samples: i32,
 }
 
 impl Camera {
@@ -37,6 +38,9 @@ impl Camera {
         let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w;
 
         let lens_radius = aperature/2.0;
+
+        let sqrt_samples = f64::sqrt(samples_per_pixel as f64) as i32;
+
  
         Camera {
             image_width,
@@ -50,7 +54,8 @@ impl Camera {
             u,
             v,
             lens_radius,
-            background
+            background,
+            sqrt_samples
         }
     }
 
@@ -62,11 +67,13 @@ impl Camera {
                 .into_par_iter()
                 .map(|i| {
                     let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                    for _ in 0..self.samples_per_pixel {
-                        let u = ((i as f64) + random_double()) / (self.image_width - 1) as f64;
-                        let v = ((j as f64) + random_double()) / (self.image_height - 1) as f64;
-                        let r = self.get_ray(u, v);
-                        pixel_color += self.ray_color(&r, world, self.max_depth);
+                    for s_i in 0..self.sqrt_samples {
+                        for s_j in 0..self.sqrt_samples {
+                            let u = (i as f64 + random_double()) / (self.image_width - 1) as f64;
+                            let v = (j as f64 + random_double()) / (self.image_height - 1) as f64;
+                            let r = self.get_ray(u, v, s_i, s_j);
+                            pixel_color += self.ray_color(&r, world, self.max_depth);
+                        }
                     }
                     pixel_color
                 })
@@ -99,11 +106,27 @@ impl Camera {
         }
     }
 
-    fn get_ray(&self, s: f64, t: f64) -> Ray {
-        let rd = self.lens_radius * vec3::random_in_unit_disk();
-        let offset = self.u * rd.x() + self.v * rd.y();
+    fn get_ray(&self, s: f64, t: f64, s_i: i32, s_j: i32) -> Ray {
+        let offset = self.sample_square_stratification(s_i, s_j);
+        let pixel_sample = self.lower_left_corner + s * self.horizontal + t * self.vertical;
+
+        let ray_origin = if self.lens_radius <= 0.0 {
+            self.origin
+        } else {
+            let rd = self.lens_radius * vec3::random_in_unit_disk();
+            self.origin + self.u * rd.x() + self.v * rd.y()
+        };
+        let ray_direction = pixel_sample - (ray_origin + offset);
         let ray_time = random_double();
         
-        Ray::new(self.origin + offset, self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset, ray_time)
+        Ray::new(ray_origin + offset, ray_direction, ray_time)
+    }
+
+    fn sample_square_stratification(&self, s_i: i32, s_j: i32) -> Vec3 {
+        let recip_sqrt_samples = 1.0 / self.sqrt_samples as f64;
+        let px = ((s_i as f64 + random_double()) * recip_sqrt_samples) - 0.5;
+        let py = ((s_j as f64 + random_double()) * recip_sqrt_samples) - 0.5;
+
+        Vec3::new(px, py, 0.0)
     }
 }
