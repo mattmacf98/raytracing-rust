@@ -2,7 +2,7 @@ use std::io;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double}, hittable::Hittable, hittable_list::HittableList, ray::Ray, vec2::UV, vec3::{self, Point3, Vec3}};
+use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double, random_double_range}, hittable::Hittable, hittable_list::HittableList, ray::Ray, vec2::UV, vec3::{self, dot, Point3, Vec3}};
 
 pub struct Camera {
     image_width: i32,
@@ -92,12 +92,30 @@ impl Camera {
         }
     
         if let Some(hit_rec) = world.hit(ray, 0.001, common::INFINITY) {
-            let color_from_emission = hit_rec.mat.emitted(hit_rec.u, hit_rec.v, &hit_rec.p);
+            let color_from_emission = hit_rec.mat.emitted(&hit_rec, hit_rec.u, hit_rec.v, &hit_rec.p);
 
             return match hit_rec.mat.scatter(ray, &hit_rec) {
                 Some(scatter_rec) => {
-                    let scatter_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scatter_rec.scattered);
-                    let color_from_scatter = (scatter_rec.attenuation * self.ray_color(&scatter_rec.scattered, world, depth - 1) * scatter_pdf) / scatter_pdf;
+                    let on_light = Point3::new(random_double_range(213.0, 343.0), 554.0, random_double_range(227.0, 332.0));
+                    let to_light = on_light - hit_rec.p;
+                    let distance_squared = to_light.length_squared();
+                    let to_light = vec3::unit_vector(to_light);
+
+                    if dot(to_light, hit_rec.normal) < 0.0 {
+                        return color_from_emission;
+                    }
+
+                    let light_area = (343.0 - 213.0) * (332.0 - 227.0);
+                    let light_cosine = f64::abs(to_light.y());
+                    if light_cosine < 0.000001 {
+                        return color_from_emission;
+                    }
+
+                    let pdf_val = distance_squared / (light_cosine * light_area);
+                    let scattered = Ray::new(hit_rec.p, to_light, ray.time());
+                    let scatter_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scattered);
+
+                    let color_from_scatter = (scatter_rec.attenuation * scatter_pdf * self.ray_color(&scattered, world, depth - 1)) / pdf_val;
                     return color_from_emission + color_from_scatter;
                 },
                 None => color_from_emission

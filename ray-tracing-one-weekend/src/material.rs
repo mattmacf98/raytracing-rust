@@ -8,7 +8,7 @@ pub struct ScatterRecord {
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord>;
-    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
+    fn emitted(&self, hit_rec: &HitRecord, u: f64, v: f64, p: &Point3) -> Color {
         Color::new(0.0, 0.0, 0.0)
     }
     fn scatter_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
@@ -156,8 +156,12 @@ impl Material for DiffuseLight {
         None
     }
 
-    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
-        self.albedo.get_color(u, v, p)
+    fn emitted(&self, hit_rec: &HitRecord, u: f64, v: f64, p: &Point3) -> Color {
+        if hit_rec.front_face {
+            self.albedo.get_color(u, v, p)
+        } else {
+            Color::new(0.0, 0.0, 0.0)
+        }
     }
 }
 
