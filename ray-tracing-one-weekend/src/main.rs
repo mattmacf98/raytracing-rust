@@ -33,11 +33,12 @@ mod interval;
 mod noise_texture;
 mod transfomation;
 mod constant_medium;
+mod onb;
 
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
 const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-const SAMPLES_PER_PIXEL: i32 = 100;
+const SAMPLES_PER_PIXEL: i32 = 1000;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {

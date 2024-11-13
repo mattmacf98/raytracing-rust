@@ -1,14 +1,18 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, random_unit_vector, Point3}};
+use crate::{color::Color, common::random_double, hittable::HitRecord, onb::Onb, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, dot, random_unit_vector, Point3, Vec3}};
 
 pub struct ScatterRecord {
     pub attenuation: Color,
-    pub scattered: Ray
+    pub scattered: Ray,
+    pub pdf_value: f64
 }
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord>;
     fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
         Color::new(0.0, 0.0, 0.0)
+    }
+    fn scatter_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        0.0
     }
 }
 
@@ -34,16 +38,24 @@ impl Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
-        let mut scatter_direction = rec.normal + vec3::random_unit_vector();
 
-        if scatter_direction.near_zero() {
-            scatter_direction = rec.normal;
-        }
+        let uvw = Onb::new(&rec.normal);
+        let scatter_direction = uvw.transform(Vec3::random_cosine_direction());
         
         Some(ScatterRecord {
             attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
-            scattered: Ray::new(rec.p, scatter_direction, r_in.time())
+            scattered: Ray::new(rec.p, scatter_direction, r_in.time()),
+            pdf_value: dot(uvw.w(), scatter_direction) / std::f64::consts::PI
         })
+    }
+
+    fn scatter_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        let cos_theta = vec3::dot(rec.normal, scattered.direction());
+        if cos_theta > 0.0 {
+            cos_theta / std::f64::consts::PI
+        } else {
+            0.0
+        }
     }
 }
 
@@ -69,7 +81,8 @@ impl Material for Metal {
         if  vec3::dot(scattered.direction(), rec.normal) > 0.0 {
             Some(ScatterRecord {
                 attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
-                scattered
+                scattered,
+                pdf_value: 0.0
             })
         } else {
             None
@@ -112,7 +125,8 @@ impl Material for Dielectric {
 
         Some(ScatterRecord {
             attenuation: Color::new(1.0, 1.0, 1.0),
-            scattered: Ray::new(rec.p, direction, r_in.time())
+            scattered: Ray::new(rec.p, direction, r_in.time()),
+            pdf_value: 0.0
         })
     }
 }
@@ -172,9 +186,15 @@ impl Material for Isotropic {
         let scattered = Ray::new(rec.p, random_unit_vector(), r_in.time());
         let attenuation = self.albedo.get_color(rec.u, rec.v, &rec.p);
 
+
         Some(ScatterRecord {
             attenuation,
-            scattered
+            scattered,
+            pdf_value: 1.0 / (4.0 * std::f64::consts::PI)
         })
+    }
+
+    fn scatter_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        1.0 / (4.0 * std::f64::consts::PI)
     }
 }

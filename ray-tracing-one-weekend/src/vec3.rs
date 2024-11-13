@@ -1,6 +1,6 @@
 use std::{fmt::Display, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}};
 
-use crate::common::{self, random_double_range};
+use crate::common::{self, random_double, random_double_range};
 
 #[derive(Copy, Clone, Default)]
 pub struct Vec3 {
@@ -32,6 +32,19 @@ impl Vec3 {
             common::random_double(),
             common::random_double(),
         )
+    }
+
+    pub fn random_cosine_direction() -> Vec3 {
+        let r1 = random_double();
+        let r2 = random_double();
+
+        let phi  = 2.0 * std::f64::consts::PI * r1;
+
+        let x = f64::cos(phi) * f64::sqrt(r2);
+        let y = f64::sin(phi) * f64::sqrt(r2);
+        let z = f64::sqrt(1.0 - r2);
+
+        Vec3::new(x, y, z)
     }
  
     pub fn random_range(min: f64, max: f64) -> Vec3 {

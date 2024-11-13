@@ -96,8 +96,9 @@ impl Camera {
 
             return match hit_rec.mat.scatter(ray, &hit_rec) {
                 Some(scatter_rec) => {
-                    let color_from_scatter = scatter_rec.attenuation * self.ray_color(&scatter_rec.scattered, world, depth - 1);
-                    return  color_from_emission + color_from_scatter;
+                    let scatter_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scatter_rec.scattered);
+                    let color_from_scatter = (scatter_rec.attenuation * self.ray_color(&scatter_rec.scattered, world, depth - 1) * scatter_pdf) / scatter_pdf;
+                    return color_from_emission + color_from_scatter;
                 },
                 None => color_from_emission
             };
