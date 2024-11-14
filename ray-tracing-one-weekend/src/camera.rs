@@ -2,7 +2,7 @@ use std::{io, sync::Arc};
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double, random_double_range}, hittable::Hittable, hittable_list::HittableList, pdf::{CosinePdf, HittablePdf, Pdf}, ray::Ray, vec2::UV, vec3::{self, dot, Point3, Vec3}};
+use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double, random_double_range}, hittable::Hittable, hittable_list::HittableList, pdf::{CosinePdf, HittablePdf, MixturePdf, Pdf}, ray::Ray, vec2::UV, vec3::{self, dot, Point3, Vec3}};
 
 pub struct Camera {
     image_width: i32,
@@ -97,8 +97,11 @@ impl Camera {
             return match hit_rec.mat.scatter(ray, &hit_rec) {
                 Some(scatter_rec) => {
                     let light_pdf = HittablePdf::new(hit_rec.p, lights.clone());
-                    let scattered_ray = Ray::new(hit_rec.p, light_pdf.generate(), ray.time());
-                    let pdf_value = light_pdf.value(scattered_ray.direction());
+                    let cosine_pdf = CosinePdf::new(hit_rec.normal);
+                    let mixture_pdf = MixturePdf::new(Arc::new(light_pdf), Arc::new(cosine_pdf));
+                    
+                    let scattered_ray = Ray::new(hit_rec.p, mixture_pdf.generate(), ray.time());
+                    let pdf_value = mixture_pdf.value(scattered_ray.direction());
 
                     let scattered_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scattered_ray);
 
