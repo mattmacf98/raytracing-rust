@@ -16,6 +16,20 @@ pub trait Material: Send + Sync {
     }
 }
 
+pub struct Empty {}
+
+impl Empty {
+    pub fn new() -> Empty {
+        Empty {}
+    }
+}
+
+impl Material for Empty {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<ScatterRecord> {
+        None
+    }
+}
+
 pub struct Lambertian {
     albedo: Box<dyn Texture>
 }

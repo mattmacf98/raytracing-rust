@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{hittable::{self, HitRecord, Hittable}, hittable_list::HittableList, material::Material, vec2::Vec2, vec3::{self, cross, dot, unit_vector, Point3, Vec3}};
+use crate::{common::{self, random_double}, hittable::{self, HitRecord, Hittable}, hittable_list::HittableList, material::Material, ray::Ray, vec2::Vec2, vec3::{self, cross, dot, unit_vector, Point3, Vec3}};
 
 pub struct Quad {
     q: Point3,
@@ -8,6 +8,7 @@ pub struct Quad {
     u: Vec3,
     w: Vec3,
     normal: Vec3,
+    area: f64,
     d: f64,
     mat: Arc<dyn Material>
 }
@@ -18,6 +19,7 @@ impl Quad {
         let normal = unit_vector(n);
         let d = dot(normal, q);
         let w = n / dot(n, n);
+        let area = n.length();
 
         Quad {
             q,
@@ -26,7 +28,8 @@ impl Quad {
             w,
             mat,
             d,
-            normal
+            normal,
+            area,
         }
     }
 
@@ -86,5 +89,24 @@ impl Hittable for Quad {
         rec.set_face_normal(ray, self.normal);
         
         Some(rec)
+    }
+
+    fn pdf_value(&self, origin: Point3, direction: Vec3) -> f64 {
+        let rec = self.hit(&Ray::new(origin, direction, 0.0), 0.001, common::INFINITY);
+        if let None = rec {
+            return 0.0;
+        }
+
+        let rec = rec.expect("Should have a hit record");
+
+        let distance_squared = rec.t * rec.t * direction.length_squared();
+        let cosine = f64::abs(dot(direction, rec.normal) / direction.length());
+
+        distance_squared / (cosine * self.area)
+    }
+
+    fn random(&self, origin: Point3) -> Vec3 {
+        let p = self.q + (random_double() * self.u) + (random_double() * self.v);
+        unit_vector(p - origin)
     }
 }

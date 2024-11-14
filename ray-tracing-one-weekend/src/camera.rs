@@ -1,8 +1,8 @@
-use std::io;
+use std::{io, sync::Arc};
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double, random_double_range}, hittable::Hittable, hittable_list::HittableList, ray::Ray, vec2::UV, vec3::{self, dot, Point3, Vec3}};
+use crate::{color::{self, Color}, common::{self, degrees_to_radians, random_double, random_double_range}, hittable::Hittable, hittable_list::HittableList, pdf::{CosinePdf, HittablePdf, Pdf}, ray::Ray, vec2::UV, vec3::{self, dot, Point3, Vec3}};
 
 pub struct Camera {
     image_width: i32,
@@ -59,7 +59,7 @@ impl Camera {
         }
     }
 
-    pub fn render(&self, world: &HittableList) {
+    pub fn render(&self, world: &HittableList, lights: Arc<dyn Hittable>) {
         print!("P3\n{} {}\n255\n", self.image_width, self.image_height);
         for j in (0..self.image_height).rev() {
             eprint!("\rScanlines remaining: {}", j);
@@ -72,7 +72,7 @@ impl Camera {
                             let u = (i as f64 + random_double()) / (self.image_width - 1) as f64;
                             let v = (j as f64 + random_double()) / (self.image_height - 1) as f64;
                             let r = self.get_ray(u, v, s_i, s_j);
-                            pixel_color += self.ray_color(&r, world, self.max_depth);
+                            pixel_color += self.ray_color(&r, world, lights.clone(), self.max_depth);
                         }
                     }
                     pixel_color
@@ -86,7 +86,7 @@ impl Camera {
         eprint!("\nDone.\n");
     }
 
-    fn ray_color(&self, ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+    fn ray_color(&self, ray: &Ray, world: &dyn Hittable, lights: Arc<dyn Hittable>, depth: i32) -> Color {
         if depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
@@ -96,26 +96,15 @@ impl Camera {
 
             return match hit_rec.mat.scatter(ray, &hit_rec) {
                 Some(scatter_rec) => {
-                    let on_light = Point3::new(random_double_range(213.0, 343.0), 554.0, random_double_range(227.0, 332.0));
-                    let to_light = on_light - hit_rec.p;
-                    let distance_squared = to_light.length_squared();
-                    let to_light = vec3::unit_vector(to_light);
+                    let light_pdf = HittablePdf::new(hit_rec.p, lights.clone());
+                    let scattered_ray = Ray::new(hit_rec.p, light_pdf.generate(), ray.time());
+                    let pdf_value = light_pdf.value(scattered_ray.direction());
 
-                    if dot(to_light, hit_rec.normal) < 0.0 {
-                        return color_from_emission;
-                    }
+                    let scattered_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scattered_ray);
 
-                    let light_area = (343.0 - 213.0) * (332.0 - 227.0);
-                    let light_cosine = f64::abs(to_light.y());
-                    if light_cosine < 0.000001 {
-                        return color_from_emission;
-                    }
+                    let sample_color = self.ray_color(&scattered_ray, world, lights.clone(), depth - 1);
+                    let color_from_scatter = (scatter_rec.attenuation * scattered_pdf * sample_color) / pdf_value;
 
-                    let pdf_val = distance_squared / (light_cosine * light_area);
-                    let scattered = Ray::new(hit_rec.p, to_light, ray.time());
-                    let scatter_pdf = hit_rec.mat.scatter_pdf(ray, &hit_rec, &scattered);
-
-                    let color_from_scatter = (scatter_rec.attenuation * scatter_pdf * self.ray_color(&scattered, world, depth - 1)) / pdf_val;
                     return color_from_emission + color_from_scatter;
                 },
                 None => color_from_emission

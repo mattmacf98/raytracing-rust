@@ -5,7 +5,7 @@ use color::Color;
 use common::{random_double, random_double_range};
 use constant_medium::ConstantMedium;
 use hittable_list::HittableList;
-use material::{Dielectric, DiffuseLight, Lambertian, Metal};
+use material::{Dielectric, DiffuseLight, Empty, Lambertian, Metal};
 use noise_texture::NoiseTexture;
 use quad::Quad;
 use ray::Ray;
@@ -34,6 +34,7 @@ mod noise_texture;
 mod transfomation;
 mod constant_medium;
 mod onb;
+mod pdf;
 
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
@@ -72,6 +73,9 @@ fn cornell_smoke() {
     world.add(Arc::new(ConstantMedium::from_color(box1.clone(), 0.01, Color::new(0.0, 0.0, 0.0))));
     world.add(Arc::new(ConstantMedium::from_color(box2.clone(), 0.01, Color::new(1.0, 1.0, 1.0))));
 
+    let lights = Arc::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(Empty::new())));
+
+
     let eye = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
@@ -79,7 +83,7 @@ fn cornell_smoke() {
     let aperture = 0.0;
     let camera = Camera::new(600, 600, 200, MAX_DEPTH, eye, lookat, up, 40.0, 1.0, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 }
 
 fn cornell_box() {
@@ -89,7 +93,6 @@ fn cornell_box() {
     let white = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
     let light = DiffuseLight::from_color(Color::new(15.0, 15.0, 15.0));
-
 
     world.add(Arc::new(Quad::new(Point3::new(555.0,0.0,0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(green))));
     world.add(Arc::new(Quad::new(Point3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 555.0, 0.0), Vec3::new(0.0, 0.0, 555.0), Arc::new(red))));
@@ -108,6 +111,8 @@ fn cornell_box() {
     let box2 = Arc::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
     world.add(box2);
 
+    let lights = Arc::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(Empty::new())));
+
     let eye = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
@@ -115,7 +120,7 @@ fn cornell_box() {
     let aperture = 0.0;
     let camera = Camera::new(600, 600, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 40.0, 1.0, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 }
 
 fn simple_light() {
@@ -126,12 +131,15 @@ fn simple_light() {
 
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_one))), 1000.0)));
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, 2.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_two))), 2.0)));
+    
+    let mut lights = HittableList::new();
 
     let diff_light_one = DiffuseLight::from_color(Color::new(4.0, 4.0, 4.0));
     let diff_light_two = DiffuseLight::from_color(Color::new(4.0, 4.0, 4.0));
 
-    world.add(Arc::new(Quad::new(Point3::new(3.0, 1.0, -2.0), Vec3::new(2.0, 0.0, 0.0), Vec3::new(0.0, 2.0, 0.0), Arc::new(diff_light_one))));
-    world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, 7.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(diff_light_two), 2.0)));
+    lights.add(Arc::new(Quad::new(Point3::new(3.0, 1.0, -2.0), Vec3::new(2.0, 0.0, 0.0), Vec3::new(0.0, 2.0, 0.0), Arc::new(diff_light_one))));
+    lights.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, 7.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(diff_light_two), 2.0)));
+
 
     let eye = Point3::new(26.0, 3.0, 6.0);
     let lookat = Point3::new(0.0, 2.0, 0.0);
@@ -140,7 +148,7 @@ fn simple_light() {
     let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
 
-    camera.render(&world);
+    camera.render(&world, Arc::new(lights));
 }
 
 fn quads() {
@@ -158,6 +166,8 @@ fn quads() {
     world.add(Arc::new(Quad::new(Point3::new(-2.0, 3.0, 1.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 4.0), Arc::new(upper_orange))));
     world.add(Arc::new(Quad::new(Point3::new(-2.0, -3.0, 5.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -4.0), Arc::new(lower_teal))));
 
+    let lights = Arc::new(HittableList::new());
+
     let eye = Point3::new(0.0, 0.0, 9.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
@@ -165,7 +175,7 @@ fn quads() {
     let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 80.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 }
 
 fn perlin_spheres() {
@@ -176,6 +186,8 @@ fn perlin_spheres() {
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, -1000.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_one))), 1000.0)));
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, 2.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(perlin_texture_two))), 2.0)));
 
+    let lights = Arc::new(HittableList::new());
+
     let eye = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
@@ -183,11 +195,12 @@ fn perlin_spheres() {
     let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 }
 
 fn earth() {
     let mut world = HittableList::new();
+    let lights = HittableList::new();
 
     let earth_texture = TextureImage::new("assets/earthmap.jpg");
     let earth_mat = Lambertian::new(Box::new(earth_texture));
@@ -201,7 +214,7 @@ fn earth() {
     let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
-    camera.render(&world);
+    camera.render(&world, Arc::new(lights));
 }
 
 fn checkered_spheres() {
@@ -212,6 +225,8 @@ fn checkered_spheres() {
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, -10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Metal::new(Box::new(checker_texture_one), 0.1)), 10.0)));
     world.add(Arc::new(Sphere::new(Ray::new(Point3::new(0.0, 10.0, 0.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), Arc::new(Lambertian::new(Box::new(checker_texture_two))), 10.0)));
 
+    let lights = Arc::new(HittableList::new());
+
     let eye = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
     let up = Point3::new(0.0, 1.0, 0.0);
@@ -219,7 +234,7 @@ fn checkered_spheres() {
     let aperture = 0.0;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 
 }
 
@@ -280,6 +295,8 @@ fn random_scene() {
         material3,
         1.0,
     )));
+
+    let lights = Arc::new(HittableList::new());
  
     let eye = Point3::new(13.0, 2.0, 3.0);
     let lookat = Point3::new(0.0, 0.0, 0.0);
@@ -288,5 +305,5 @@ fn random_scene() {
     let aperture = 0.1;
     let camera = Camera::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 20.0, ASPECT_RATIO, aperture, dist_to_focus, Color::new(0.7, 0.8, 1.0));
 
-    camera.render(&world);
+    camera.render(&world, lights);
 }
