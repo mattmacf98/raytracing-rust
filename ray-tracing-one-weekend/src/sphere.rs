@@ -1,7 +1,7 @@
 use core::f64;
 use std::sync::Arc;
 
-use crate::{hittable::{HitRecord, Hittable}, material::Material, ray::Ray, vec2::UV, vec3::{self, Point3}};
+use crate::{common::random_double, hittable::{HitRecord, Hittable}, material::Material, onb::Onb, ray::Ray, vec2::UV, vec3::{self, Point3, Vec3}};
 
 pub struct Sphere {
     center: Ray,
@@ -26,6 +26,18 @@ impl Sphere {
         let v = theta / f64::consts::PI;
 
         UV::new(u, v)
+    }
+
+    fn random_to_sphere(radius: f64, distance_squared: f64) -> Vec3 {
+        let r1 =  random_double();
+        let r2 = random_double();
+        let z = 1.0 + r2 * (f64::sqrt(1.0 - (radius * radius)/distance_squared) - 1.0);
+
+        let phi = 2.0 * f64::consts::PI * r1;
+        let x = f64::cos(phi) * f64::sqrt(1.0 - z * z);
+        let y = f64::sin(phi) * f64::sqrt(1.0 - z * z);
+
+        Vec3::new(x, y, z)
     }
 }
 
@@ -68,5 +80,25 @@ impl Hittable for Sphere {
         rec.set_face_normal(ray, outward_norm);
         
         Some(rec)
+    }
+
+    fn pdf_value(&self, origin: Point3, direction: Vec3) -> f64 {
+        if let None = self.hit(&Ray::new(origin, direction, 0.0), 0.001, f64::INFINITY) {
+            return 0.0;
+        }
+
+        let dist_squared = (self.center.at(0.0) - origin).length_squared();
+        let cos_theta_max = f64::sqrt(1.0 - self.radius * self.radius / dist_squared);
+        let solid_angle = 2.0 * f64::consts::PI * (1.0 - cos_theta_max);
+
+        1.0 / solid_angle
+    }
+
+    fn random(&self, origin: Point3) -> Vec3 {
+        let direction = self.center.at(0.0) - origin;
+        let distance_squared = direction.length_squared();
+
+        let uwu = Onb::new(&direction);
+        uwu.transform(Sphere::random_to_sphere(self.radius, distance_squared))
     }
 }

@@ -107,6 +107,6 @@ impl Hittable for Quad {
 
     fn random(&self, origin: Point3) -> Vec3 {
         let p = self.q + (random_double() * self.u) + (random_double() * self.v);
-        unit_vector(p - origin)
+        p - origin
     }
 }

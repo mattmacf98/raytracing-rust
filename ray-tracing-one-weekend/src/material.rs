@@ -1,9 +1,11 @@
-use crate::{color::Color, common::random_double, hittable::HitRecord, onb::Onb, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, dot, random_unit_vector, Point3, Vec3}};
+use std::sync::Arc;
+
+use crate::{color::Color, common::random_double, hittable::HitRecord, onb::Onb, pdf::{CosinePdf, Pdf, SpherePdf}, ray::Ray, texture::{SolidColor, Texture}, vec3::{self, dot, random_unit_vector, unit_vector, Point3, Vec3}};
 
 pub struct ScatterRecord {
     pub attenuation: Color,
+    pub pdf: Option<Arc<dyn Pdf>>,
     pub scattered: Ray,
-    pub pdf_value: f64
 }
 
 pub trait Material: Send + Sync {
@@ -59,12 +61,12 @@ impl Material for Lambertian {
         Some(ScatterRecord {
             attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
             scattered: Ray::new(rec.p, scatter_direction, r_in.time()),
-            pdf_value: dot(uvw.w(), scatter_direction) / std::f64::consts::PI
+            pdf: Some(Arc::new(CosinePdf::new(rec.normal)))
         })
     }
 
     fn scatter_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
-        let cos_theta = vec3::dot(rec.normal, scattered.direction());
+        let cos_theta = vec3::dot(rec.normal, unit_vector(scattered.direction()));
         if cos_theta > 0.0 {
             cos_theta / std::f64::consts::PI
         } else {
@@ -85,6 +87,15 @@ impl Metal {
             fuzz: if f < 1.0 {f} else {1.0}
         }
     }
+
+    pub fn from_color(albedo_color: Color, f: f64) -> Metal {
+        let albedo = SolidColor::new(albedo_color);
+
+        Metal {
+            albedo: Box::new(albedo),
+            fuzz: if f < 1.0 {f} else {1.0}
+        }
+    }
 }
 
 impl Material for Metal {
@@ -96,7 +107,7 @@ impl Material for Metal {
             Some(ScatterRecord {
                 attenuation: self.albedo.get_color(rec.u, rec.v, &rec.p),
                 scattered,
-                pdf_value: 0.0
+                pdf: None
             })
         } else {
             None
@@ -140,7 +151,7 @@ impl Material for Dielectric {
         Some(ScatterRecord {
             attenuation: Color::new(1.0, 1.0, 1.0),
             scattered: Ray::new(rec.p, direction, r_in.time()),
-            pdf_value: 0.0
+            pdf: None
         })
     }
 }
@@ -208,7 +219,7 @@ impl Material for Isotropic {
         Some(ScatterRecord {
             attenuation,
             scattered,
-            pdf_value: 1.0 / (4.0 * std::f64::consts::PI)
+            pdf: Some(Arc::new(SpherePdf::new()))
         })
     }
 

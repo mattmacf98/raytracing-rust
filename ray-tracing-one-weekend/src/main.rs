@@ -39,7 +39,7 @@ mod pdf;
 const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: i32 = 400;
 const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-const SAMPLES_PER_PIXEL: i32 = 10;
+const SAMPLES_PER_PIXEL: i32 = 100;
 const MAX_DEPTH: i32 = 50;
 
 fn main() {
@@ -88,9 +88,11 @@ fn cornell_smoke() {
 
 fn cornell_box() {
     let mut world = HittableList::new();
+    let mut lights = HittableList::new();
 
     let red = Lambertian::from_color(Color::new(0.65, 0.05, 0.05));
     let white = Arc::new(Lambertian::from_color(Color::new(0.73, 0.73, 0.73)));
+    let aluminum = Arc::new(Metal::from_color(Color::new(0.8, 0.85, 0.88), 0.0));
     let green = Lambertian::from_color(Color::new(0.12, 0.45, 0.15));
     let light = DiffuseLight::from_color(Color::new(15.0, 15.0, 15.0));
 
@@ -106,12 +108,10 @@ fn cornell_box() {
     let box1 = Arc::new(Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)));
     world.add(box1);
 
-    let box2 = Arc::new(Quad::get_box(Point3::new(0.0, 0.0, 0.0), Point3::new(165.0, 165.0, 165.0), white.clone()));
-    let box2 = Arc::new(RotateY::new(box2, -18.0));
-    let box2 = Arc::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
-    world.add(box2);
+    let glass = Arc::new(Dielectric::new(1.5));
+    world.add(Arc::new(Sphere::new(Ray::new(Point3::new(190.0, 90.0, 190.0) , Vec3::new(0.0, 0.0, 0.0), 0.0), glass, 90.0)));
 
-    let lights = Arc::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(Empty::new())));
+    lights.add(Arc::new(Quad::new(Point3::new(343.0, 554.0, 332.0), Vec3::new(-130.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -105.0), Arc::new(Empty::new()))));
 
     let eye = Point3::new(278.0, 278.0, -800.0);
     let lookat = Point3::new(278.0, 278.0, 0.0);
@@ -120,7 +120,7 @@ fn cornell_box() {
     let aperture = 0.0;
     let camera = Camera::new(600, 600, SAMPLES_PER_PIXEL, MAX_DEPTH, eye, lookat, up, 40.0, 1.0, aperture, dist_to_focus, Color::new(0.0, 0.0, 0.0));
 
-    camera.render(&world, lights);
+    camera.render(&world, Arc::new(lights));
 }
 
 fn simple_light() {

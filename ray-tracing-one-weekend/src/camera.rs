@@ -96,9 +96,11 @@ impl Camera {
 
             return match hit_rec.mat.scatter(ray, &hit_rec) {
                 Some(scatter_rec) => {
+                    if let None = scatter_rec.pdf {
+                        return scatter_rec.attenuation * self.ray_color(&scatter_rec.scattered, world, lights.clone(), depth - 1);
+                    }
                     let light_pdf = HittablePdf::new(hit_rec.p, lights.clone());
-                    let cosine_pdf = CosinePdf::new(hit_rec.normal);
-                    let mixture_pdf = MixturePdf::new(Arc::new(light_pdf), Arc::new(cosine_pdf));
+                    let mixture_pdf = MixturePdf::new(Arc::new(light_pdf), scatter_rec.pdf.unwrap().clone());
                     
                     let scattered_ray = Ray::new(hit_rec.p, mixture_pdf.generate(), ray.time());
                     let pdf_value = mixture_pdf.value(scattered_ray.direction());

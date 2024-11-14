@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::hittable::{HitRecord, Hittable};
+use crate::{common::random_int_range, hittable::{HitRecord, Hittable}, vec3::{Point3, Vec3}};
 
 #[derive(Default)]
 pub struct HittableList {
@@ -30,5 +30,17 @@ impl Hittable for HittableList {
         }
 
         temp_rec
+    }
+
+    fn pdf_value(&self, origin: Point3, direction: Vec3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+        self.objects.iter()
+            .map(|object| weight * object.pdf_value(origin, direction))
+            .sum()
+    }
+    
+    fn random(&self, origin: Point3) -> Vec3 {
+        let index: usize = random_int_range(0, (self.objects.len() - 1) as i32) as usize;
+        self.objects[index].random(origin)
     }
 }
